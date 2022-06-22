@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+
+    .country{
+     /*   fill:grey ;*/
+        stroke: white;
+        stroke-width : 1px ;        
+    }
+    .country.selected{
+        fill:blue;
+        stroke:purple;
+    }
+
+ 
+
+  </style>
+
+</head>
+<body>
+  
+    <svg id="map">
+        <defs>
+            <linearGradient id="oceanGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:rgb(0,0,27);stop-opacity:1" />
+              <stop offset="100%" style="stop-color:rgb(26, 169, 208);stop-opacity:1" />
+            </linearGradient>
+          </defs>
+    </svg>
+  
+    <div id="tooltip"></div>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+<script>
+
+tooltip = d3
+    .select('body')
+    .append('div')
+    .attr('class', 'd3-tooltip')
+    .style('position', 'absolute')
+    .style('z-index', '10')
+    .style('visibility', 'hidden')
+    .style('padding', '10px')
+    .style('background', 'rgba(0,0,0,0.6)')
+    .style('border-radius', '4px')
+    .style('color', '#fff')
+    .text('a simple tooltip');
+
+ 
+var labels = ["< 50 ",
+                    "50 - 1000",
+                    "1000 - 2000",
+                    "2000 - 3000",
+                    ">3000",]
+let colorScale = d3.scaleSequential()
+.domain([0,1000,2000,3000,50000])
+.interpolator(d3.interpolateRdPu);
+/*
+                console.log(domain)
+var colorScale = d3.scaleThreshold()
+               .domain(domain)
+                .range(d3.interpolateWarm(9));
+*/
+
+/*
+
+*/
+let width = 1000, height = 600;
+
+let svg = d3.select("svg")
+    .attr("viewBox", "0 0 " + width + " " + height)
+
+// Load external data
+Promise.all([d3.json("sgmap.json"), d3.csv("population2021.csv")]).then(data => {
+
+console.log("what is this ",data[0]);
+console.log("what is this 2 ",data[1]);
+//const populationMap = new Map()
+
+/*
+const mapInfoList = []
+for (var key in data[1]){
+    const mapInfo = new Object();
+    mapInfo.loc = data[1][key].Subzone;
+ 
+
+    if(data[1][key].Population != '-'){
+        mapInfo.population = parseInt( data[1][key].Population)
+    }
+    else{
+        mapInfo.population = 0  
+    }
+    mapInfoList.push(mapInfo)
+} 
+
+*/
+
+ 
+let mapInfo = new Map();
+for (key in data[1]) {
+    mapInfo.set(
+    String(data[1][key].Subzone).toUpperCase(), 
+    parseInt(data[1][key].Population) || 0)
+ }
+
+let graticule = d3.geoGraticule()
+      .step([10, 10]);
+
+// Map and projection
+
+var projection = d3.geoMercator()
+    .center([103.851959, 1.290270])
+    .fitExtent([[20, 20], [980, 580]], data[0]);
+
+let geopath = d3.geoPath().projection(projection);
+/*
+svg.append("path")
+    .datum({type: "Sphere"})
+    .attr("id", "ocean")
+    .attr("d", geopath)
+    .attr("fill", "url(#oceanGradient)");
+*/
+
+    svg.append("g")
+    .attr("id", "graticules")
+    .selectAll("path")
+    .data([graticule()])
+    .enter()
+    .append("path")
+    .attr("d", d => geopath(d))
+    .attr("fill", "none")
+    .attr("stroke", "#aaa")
+    .attr("stroke-width", 0.2);
+
+
+
+
+
+    
+
+svg.append("g")
+    .attr("id", "countries")
+    .selectAll("path")
+    .data(data[0].features)
+    .enter()
+    .append("path")
+    .attr("d", geopath)
+    .attr("fill", function (d) {
+        let temp = 0;
+        
+        d.Population = mapInfo.get(d.properties.Name);
+        return colorScale(d.Population);
+        /*
+        for (var key in mapInfoList){
+            console.log(mapInfoList[1].loc)
+            text = String(mapInfoList[key].loc).toUpperCase()
+             if(text ==  d.properties.Name)
+             {
+                temp = mapInfoList[key].population 
+                break;
+             }
+
+        }
+         */   
+            return colorScale(temp);
+ 
+
+        
+       })
+    .attr("class", "country")
+    .on("mouseover", (event,d, i) => {
+           console.log(d)
+           d.population = mapInfo.get(d.properties.Name);
+            tooltip.html(
+              `<div>Category: ${d.properties.Name} </div><div>Population: ${d.population}</div>`
+            )
+            .style('visibility', 'visible');
+            })
+        .on('mousemove', function (event,d) {
+        
+        d.population = mapInfo.get(d.properties.Name);
+       
+           console.log("yo",d.properties)
+            tooltip.html(`<div>Location: ${d.properties.Name} </div><div>Population: ${d.population }</div>`)  
+            .style('top', event.y - 10 + 'px')
+            .style('left', event.x + 10 + 'px');
+            d3.select(event.currentTarget)
+                .classed("selected",true)
+        })
+        .on("mouseout", (event,d,i) => {
+                tooltip.html(``).style('visibility', 'hidden');
+                d3.select(event.currentTarget)
+                .classed("selected",false)
+            })
+
+
+//    .on("mouseover", mouseOver )
+//    .on("mouseleave", mouseLeave );
+})      
+
+  var legend = d3.legendColor()
+  .labels(labels)
+  .title("Population")
+   .scale(colorScale)
+
+    svg.append("g")
+    .attr("transform", "translate(900,355)")
+    .call(legend);
+
+</script>
+
+</body>
+</html>
