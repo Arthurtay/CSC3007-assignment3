@@ -35,6 +35,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
 <script>
 
+
+
 tooltip = d3
     .select('body')
     .append('div')
@@ -172,15 +174,14 @@ svg.append("g")
     .attr("class", "country")
     .on("mouseover", (event,d, i) => {
            console.log(d)
-           d.population = mapInfo.get(d.properties.Name);
+      
             tooltip.html(
-              `<div>Category: ${d.properties.Name} </div><div>Population: ${d.population}</div>`
+              `<div>Location: ${d.properties.Name} </div><div>Population: ${d.population}</div>`
             )
             .style('visibility', 'visible');
             })
         .on('mousemove', function (event,d) {
         
-        d.population = mapInfo.get(d.properties.Name);
        
            console.log("yo",d.properties)
             tooltip.html(`<div>Location: ${d.properties.Name} </div><div>Population: ${d.population }</div>`)  
